@@ -1,7 +1,7 @@
 router.lua
 ==========
 
-[![Build Status](https://travis-ci.org/APItools/router.lua.svg)](https://travis-ci.org/APItools/router.lua)
+[![Build Status](https://travis-ci.org/kikito/router.lua.svg)](https://travis-ci.org/kikito/router.lua)
 
 A very basic router for lua.
 
