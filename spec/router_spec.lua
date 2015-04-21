@@ -1,6 +1,6 @@
 local router = require 'router'
 
-local LEAF = router._LEAF
+local LEAF = "LEAF"
 
 describe("Router", function()
   local r
@@ -16,66 +16,59 @@ describe("Router", function()
     describe('when first param is a string', function()
       it("understands fixed strings", function()
         r:match("get", "/foo", write_dummy)
-        assert.same(r._tree, {
-          get = { foo = { [LEAF] = write_dummy } }
-        })
+        r:execute("get", "/foo", "ok")
+        assert.same(dummy.params, "ok")
       end)
 
       it("understands chained fixed strings", function()
         r:match("get", "/foo/bar", write_dummy)
-        assert.same(r._tree, {
-          get = { foo = { bar = { [LEAF] = write_dummy } } }
-        })
+        r:execute("get", "/foo/bar", "ok")
+        assert.same(dummy.params, "ok")
       end)
 
       it("understands params", function()
         r:match("get", "/foo/:id", write_dummy)
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, { [LEAF] = write_dummy })
+        r:execute("get", "/foo/bar")
+        assert.same(dummy.params, {id="bar"})
       end)
 
       it("does not duplicate the same node twice for the same param id", function()
         r:match("get", "/foo/:id/bar", write_dummy)
         r:match("get", "/foo/:id/baz", write_dummy)
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, {
-          bar = {[LEAF] = write_dummy },
-          baz = {[LEAF] = write_dummy }
-        })
+
+        r:execute("get", "/foo/1/bar")
+        assert.same(dummy.params, {id="1"})
+
+        r:execute("get", "/foo/2/baz")
+        assert.same(dummy.params, {id="2"})
       end)
 
       it("supports an extension on a param", function()
         r:match("get", "/foo/:id.json", write_dummy)
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, {
-          json = {[LEAF] = write_dummy }
-        })
+
+        r:execute("get", "/foo/1.json")
+        assert.same(dummy.params, {id="1"})
       end)
     end)
 
     describe('when first param is a table', function()
       it("understands fixed strings", function()
         r:match({ get = { ["/foo"] = write_dummy} })
-        assert.same(r._tree, {
-          get = { foo = { [LEAF] = write_dummy } }
-        })
+        r:execute("get", "/foo", "ok")
+        assert.same(dummy.params, "ok")
       end)
 
       it("understands chained fixed strings", function()
         r:match({ get = { ["/foo/bar"] = write_dummy } })
-        assert.same(r._tree, {
-          get = { foo = { bar = { [LEAF] = write_dummy } } }
-        })
+
+        r:execute("get", "/foo/bar", "ok")
+        assert.same(dummy.params, "ok")
       end)
 
       it("understands params", function()
         r:match({get = {["/foo/:id"] = write_dummy}})
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, { [LEAF] = write_dummy })
+        r:execute("get", "/foo/bar")
+        assert.same(dummy.params, {id="bar"})
       end)
 
       it("does not duplicate the same node twice for the same param id", function()
@@ -85,12 +78,11 @@ describe("Router", function()
             ["/foo/:id/baz"] = write_dummy
           }
         })
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, {
-          bar = {[LEAF] = write_dummy },
-          baz = {[LEAF] = write_dummy }
-        })
+        r:execute("get", "/foo/1/bar")
+        assert.same(dummy.params, {id="1"})
+
+        r:execute("get", "/foo/2/baz")
+        assert.same(dummy.params, {id="2"})
       end)
 
       it("supports an extension on a param", function()
@@ -99,11 +91,8 @@ describe("Router", function()
             ["/foo/:id.json"] = write_dummy
           }
         })
-        local key, node = next(r._tree.get.foo)
-        assert.same(key, {param = "id"})
-        assert.same(node, {
-          json = {[LEAF] = write_dummy }
-        })
+        r:execute("get", "/foo/1.json")
+        assert.same(dummy.params, {id="1"})
       end)
     end)
   end)
@@ -220,7 +209,7 @@ describe("Router", function()
           r:execute("post", "/s/21", {bar = '22'})
           assert.same(dummy.params, {id = '21', bar = '22'})
         end)
-
+        -- no need to override the params
         it("overrides with post params", function()
           r:execute("post", "/s/21", {id = '22'})
           assert.same(dummy.params, {id = '22'})
